@@ -104,7 +104,7 @@ td.n.add{color:var(--add)} td.n.cut{color:var(--cut)}
 tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
 @media (prefers-reduced-motion:no-preference){.cell,.item{transition:background .15s}}
 </style>
-<style>:root{color-scheme:light}.wrap{zoom:var(--z,1)}@media (min-width:1000px){:root{--z:1.2}}.zoom{display:flex;gap:6px;align-items:center}.zoom button{padding:4px 10px;font-size:13px}body{margin:0}.back{font-size:13px;color:var(--muted);text-decoration:none}.back:hover{color:var(--accent)}</style>
+<style>:root{color-scheme:light}.wrap{zoom:var(--z,1)}@media (min-width:1000px){:root{--z:1.2}}.zoom{display:flex;gap:6px;align-items:center}.zoom button{padding:4px 10px;font-size:13px}.item .m.edit{color:var(--accent)}body{margin:0}.back{font-size:13px;color:var(--muted);text-decoration:none}.back:hover{color:var(--accent)}</style>
 </head>
 <body>
 <div class="wrap">
@@ -220,7 +220,7 @@ function renderCal(){
     const c=el("button",{type:"button",class:"cell"+(d.getMonth()!==m?" out":"")+(s===today?" today":"")+(s===sel?" sel":"")+(d.getDay()===0?" sun":d.getDay()===6?" sat":""),"aria-label":fmtDay(s)});
     c.appendChild(el("span",{class:"dn"},d.getDate()));
     const list=byDate(s);
-    list.slice(0,3).forEach(e=>c.appendChild(el("span",{class:"chip "+cls(e),title:`${e.meal} ${sign(e)} ${e.dept}`},`${e.meal[0]} ${sign(e)} ${e.dept}`)));
+    list.slice(0,3).forEach(e=>c.appendChild(el("span",{class:"chip "+cls(e),title:`${e.meal} ${sign(e)} ${e.dept}`},`${e.updatedAt?"✎ ":""}${e.meal[0]} ${sign(e)} ${e.dept}`)));
     if(list.length>3)c.appendChild(el("span",{class:"more"},`+${list.length-3}건 더`));
     if(list.length){const dots=el("span",{class:"dots"});
       const a=list.filter(e=>e.kind!=="제외").reduce((t,e)=>t+e.count,0),r=list.filter(e=>e.kind==="제외").reduce((t,e)=>t+e.count,0);
@@ -239,8 +239,9 @@ function renderDay(){
   list.forEach(e=>{
     const it=el("div",{class:"item"}); it.appendChild(el("span",{class:"badge "+cls(e)},sign(e)));
     const mid=el("div"); mid.appendChild(el("div",{class:"t"},`${e.meal} · ${e.dept}`));
-    const meta=[e.memo,e.author&&("작성 "+e.author),e.updatedAt&&("수정 "+e.updatedAt)].filter(Boolean).join(" · ");
-    if(meta)mid.appendChild(el("div",{class:"m"},meta)); it.appendChild(mid);
+    const meta=[e.memo,e.author&&("작성 "+e.author)].filter(Boolean).join(" · ");
+    if(meta)mid.appendChild(el("div",{class:"m"},meta));
+    String(e.updatedAt||"").split("\n").filter(Boolean).forEach(l=>mid.appendChild(el("div",{class:"m edit"},"✎ "+l))); it.appendChild(mid);
     if(mine(e)){const btns=el("div",{style:"display:flex;gap:6px"});
       const eb=el("button",{type:"button"},"수정"); eb.addEventListener("click",()=>startEdit(e)); btns.appendChild(eb);
       const b=el("button",{type:"button"},"삭제"); let armed=null;
@@ -264,7 +265,7 @@ function renderMonth(){
   if(!list.length){const tr=el("tr");tr.appendChild(el("td",{colspan:"6",class:"memo"},"이번 달 변경이 아직 없어요."));tb.appendChild(tr);return}
   list.forEach(e=>{const tr=el("tr",{class:"click"});
     tr.appendChild(el("td",{},fmtDay(e.date))); tr.appendChild(el("td",{},e.meal));
-    tr.appendChild(el("td",{class:"n "+cls(e)},sign(e))); tr.appendChild(el("td",{},e.dept));
+    {const td=el("td",{class:"n "+cls(e)},sign(e)+(e.updatedAt?" ✎":""));if(e.updatedAt)td.title="수정: "+String(e.updatedAt).replace(/\n/g," / ");tr.appendChild(td);} tr.appendChild(el("td",{},e.dept));
     tr.appendChild(el("td",{class:"memo"},e.memo||"")); tr.appendChild(el("td",{},e.author||""));
     tr.addEventListener("click",()=>{sel=e.date;render();$("dh").scrollIntoView({block:"nearest"})});
     tb.appendChild(tr)});
@@ -302,7 +303,7 @@ $("f").addEventListener("submit",async ev=>{
   try{const r=await apiPost(wasEdit?{action:"update",id:editId,author,pin,entry}:{action:"add",author,pin,entry});
     if(!r.ok){m.className="formmsg err";m.textContent=ERR[r.error]||"저장하지 못했어요.";if(r.error==="pin")$("fPin").focus();if(r.error==="not_found")await refresh();dupKey="";$("fBtn").textContent=wasEdit?"수정 저장":"일정표에 올리기";return}
     store("ms-author",author); sstore("ms-pin",pin); endEdit();
-    m.className="formmsg"; m.textContent=`${wasEdit?"수정했어요":"올렸어요"}: ${fmtDay(date)} ${meal} ${kind==="제외"?"−":"+"}${count}명 · ${dept}`;
+    m.className="formmsg"; m.textContent=r.same?"바뀐 내용이 없어서 그대로 두었어요.":`${wasEdit?"수정했어요":"올렸어요"}: ${fmtDay(date)} ${meal} ${kind==="제외"?"−":"+"}${count}명 · ${dept}`;
     sel=date; const d=new Date(date+"T00:00:00"); view=new Date(d.getFullYear(),d.getMonth(),1); await refresh();
   }catch(err){m.className="formmsg err";m.textContent="연결이 끊겼어요. 다시 눌러 주세요."}
   finally{$("fBtn").disabled=false}
