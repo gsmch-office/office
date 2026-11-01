@@ -121,19 +121,19 @@ tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
   <section class="panel" aria-labelledby="fh">
     <h3 id="fh">✏️ 식수 변경 입력</h3>
     <form id="f" autocomplete="off">
-      <label>날짜 <b style="color:var(--cut)">*</b><input type="date" id="fDate" required></label>
-      <label>식사 <b style="color:var(--cut)">*</b><select id="fMeal" required><option value="" selected disabled>선택</option><option>조식</option><option>중식</option><option>석식</option></select></label>
+      <label><span>날짜 <b style="color:var(--cut)">*</b></span><input type="date" id="fDate" required></label>
+      <label><span>식사 <b style="color:var(--cut)">*</b></span><select id="fMeal" required><option value="" selected disabled>선택</option><option>조식</option><option>중식</option><option>석식</option></select></label>
       <div><span style="font-size:12.5px;color:var(--muted);font-weight:500">구분 <b style="color:var(--cut)">*</b></span>
         <div class="seg" role="radiogroup" aria-label="구분" style="margin-top:4px">
           <input type="radio" name="kind" id="kAdd" value="추가" required><label class="add" for="kAdd">＋ 추가</label>
           <input type="radio" name="kind" id="kCut" value="제외"><label class="cut" for="kCut">－ 제외</label>
         </div>
       </div>
-      <label>인원 <b style="color:var(--cut)">*</b><input type="number" id="fCount" min="1" max="999" inputmode="numeric" placeholder="예: 12" required></label>
-      <label class="wide">부서 · 위원회 <b style="color:var(--cut)">*</b><input id="fDept" placeholder="직접 입력 (필수) 예: 교통국" required></label>
-      <label class="wide">메모 (선택)<input id="fMemo" placeholder="예: 행사로 도시락 대체"></label>
-      <label>작성자 <b style="color:var(--cut)">*</b><select id="fAuthor" required><option value="" selected disabled>선택</option></select></label>
-      <label>비밀번호 <b style="color:var(--cut)">*</b><input type="password" id="fPin" inputmode="numeric" maxlength="4" placeholder="4자리" autocomplete="off" required></label>
+      <label><span>인원 <b style="color:var(--cut)">*</b></span><input type="number" id="fCount" min="1" max="999" inputmode="numeric" placeholder="예: 12" required></label>
+      <label class="wide"><span>부서 · 위원회 <b style="color:var(--cut)">*</b></span><input id="fDept" placeholder="직접 입력 (필수) 예: 교통국" required></label>
+      <label class="wide"><span>메모 (선택)</span><input id="fMemo" placeholder="예: 행사로 도시락 대체"></label>
+      <label><span>작성자 <b style="color:var(--cut)">*</b></span><select id="fAuthor" required><option value="" selected disabled>선택</option></select></label>
+      <label><span>비밀번호 <b style="color:var(--cut)">*</b></span><input type="password" id="fPin" inputmode="numeric" maxlength="4" placeholder="4자리" autocomplete="off" required></label>
       <button class="primary" id="fBtn" type="submit">일정표에 올리기</button>
       <button id="fCancel" type="button" hidden>수정 취소</button>
       <div class="formmsg" id="fMsg" role="status"></div>
