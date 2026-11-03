@@ -104,7 +104,7 @@ td.n.add{color:var(--add)} td.n.cut{color:var(--cut)}
 tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
 @media (prefers-reduced-motion:no-preference){.cell,.item{transition:background .15s}}
 </style>
-<style>:root{color-scheme:light}.wrap{zoom:var(--z,1)}@media (min-width:1000px){:root{--z:1.2}}.zoom{display:flex;gap:6px;align-items:center}.zoom button{padding:4px 10px;font-size:13px}.item .m.edit{color:var(--accent)}body{margin:0}.back{font-size:13px;color:var(--muted);text-decoration:none}.back:hover{color:var(--accent)}</style>
+<style>:root{color-scheme:light}.wrap{zoom:var(--z,1)}@media (min-width:1000px){:root{--z:1.2}}.zoom{display:flex;gap:6px;align-items:center}.zoom button{padding:4px 10px;font-size:13px}.item .m.edit{color:var(--accent)}.notice[hidden]{display:none}.notice{background:var(--today);border:1px solid #E8C95A;border-radius:14px;padding:12px 16px;display:grid;gap:8px}.notice .nh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}.notice .nh b{font-size:16px}.notice .nk{font-size:12.5px;color:var(--muted);margin-left:6px}.notice ul{margin:0;padding:0;list-style:none;display:grid;gap:4px;max-height:220px;overflow:auto}.notice li{font-size:13.5px;cursor:pointer;border-radius:6px;padding:3px 6px}.notice li:hover{background:#FFEBA8}.notice li .tg{display:inline-block;font-size:11.5px;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px;color:#fff}.tg.n{background:var(--add)}.tg.u{background:var(--accent)}.tg.d{background:var(--cut)}.notice button{background:var(--accent);border-color:var(--accent);color:#fff}.chip.newc{box-shadow:inset 0 0 0 1.5px #D9A400}.nw{display:inline-block;font-size:10.5px;font-weight:700;color:#fff;background:#D9A400;border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px}body{margin:0}.back{font-size:13px;color:var(--muted);text-decoration:none}.back:hover{color:var(--accent)}</style>
 </head>
 <body>
 <div class="wrap">
@@ -118,6 +118,11 @@ tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
   </header>
 
   <div class="banner" id="banner" hidden></div>
+
+  <section class="notice" id="notice" hidden aria-live="polite">
+    <div class="nh"><div>🔔 <b id="nTitle"></b><span class="nk" id="nKinds"></span></div><button type="button" id="seenBtn">확인했어요</button></div>
+    <ul id="nList"></ul>
+  </section>
 
   <section class="panel" aria-labelledby="fh">
     <h3 id="fh">✏️ 식수 변경 입력</h3>
@@ -202,10 +207,47 @@ async function refresh(){
     const s=$("fAuthor"); s.textContent=""; s.appendChild(el("option",{value:"",disabled:""},"선택"));
     authors.forEach(a=>s.appendChild(el("option",{},a.name)));
     const want=prev||load("ms-author")||""; s.value=authors.some(a=>a.name===want)?want:"";
+    if(!seen){seen=snapshot();store("ms-seen",JSON.stringify(seen))} computeChanges();
     ready=true; $("banner").hidden=true; $("fBtn").disabled=false;
     $("status").textContent=`최신 · ${entries.length}건 · ${new Date().toTimeString().slice(0,5)} 기준`;
   }catch(e){$("status").textContent="연결 안 됨";const b=$("banner");b.hidden=false;b.textContent="저장소에 연결하지 못했어요. 잠시 후 새로고침해 주세요.";if(!ready)$("fBtn").disabled=true}
   render();
+}
+
+/* ---- 새 변경 알림 (이 컴퓨터에서 마지막으로 [확인했어요] 누른 뒤 바뀐 것) ---- */
+const sig=e=>[e.date,e.meal,e.kind,e.count,e.dept,e.memo||"",e.updatedAt||""].join("|");
+const label=e=>`${fmtDay(e.date)} ${e.meal} ${sign(e)} ${e.dept}`;
+let seen=null, changes={n:[],u:[],d:[]}, changedIds=new Set();
+try{seen=JSON.parse(load("ms-seen")||"null")}catch(e){seen=null}
+const snapshot=()=>{const o={};entries.forEach(e=>o[e.id]={s:sig(e),t:label(e),a:e.author||""});return o};
+function markSeen(){seen=snapshot();store("ms-seen",JSON.stringify(seen));computeChanges();render()}
+function computeChanges(){
+  changes={n:[],u:[],d:[]}; changedIds=new Set(); if(!seen)return;
+  const cur=new Set();
+  entries.forEach(e=>{cur.add(String(e.id)); const o=seen[e.id];
+    if(!o){changes.n.push(e);changedIds.add(String(e.id))} else if(o.s!==sig(e)){changes.u.push(e);changedIds.add(String(e.id))}});
+  Object.keys(seen).forEach(id=>{if(!cur.has(String(id)))changes.d.push(seen[id])});
+}
+function renderNotice(){
+  const n=changes.n.length+changes.u.length+changes.d.length, box=$("notice");
+  document.title=(n?`(${n}) `:"")+"식수 변경 일정표 · 선한목자교회 사무국";
+  if(!n){box.hidden=true;return}
+  box.hidden=false; $("nTitle").textContent=`새 변경 ${n}건`;
+  $("nKinds").textContent=[changes.n.length&&`새로 ${changes.n.length}`,changes.u.length&&`수정 ${changes.u.length}`,changes.d.length&&`삭제 ${changes.d.length}`].filter(Boolean).join(" · ")+" — 마지막 확인 이후";
+  const ul=$("nList"); ul.textContent="";
+  const add=(tag,txt,who,date)=>{const li=el("li"); li.appendChild(el("span",{class:"tg "+tag},tag==="n"?"새로":tag==="u"?"수정":"삭제")); li.append(txt+(who?` · ${who}`:""));
+    if(date)li.addEventListener("click",()=>{sel=date;const d=new Date(date+"T00:00:00");view=new Date(d.getFullYear(),d.getMonth(),1);render();$("dh").scrollIntoView({block:"nearest"})});
+    ul.appendChild(li)};
+  changes.n.forEach(e=>add("n",label(e),e.author,e.date));
+  changes.u.forEach(e=>add("u",label(e),e.author,e.date));
+  changes.d.forEach(o=>add("d",o.t,o.a,null));
+}
+$("seenBtn").addEventListener("click",markSeen);
+/* 내가 방금 올리거나 고친 건 알림에서 빼기 */
+function seenOwn(author,delId){
+  if(!seen)return; if(delId!=null)delete seen[delId];
+  entries.forEach(e=>{if(e.author===author&&(!seen[e.id]||seen[e.id].s!==sig(e)))seen[e.id]={s:sig(e),t:label(e),a:e.author||""}});
+  store("ms-seen",JSON.stringify(seen)); computeChanges(); render();
 }
 
 /* ---- 화면 ---- */
@@ -220,7 +262,7 @@ function renderCal(){
     const c=el("button",{type:"button",class:"cell"+(d.getMonth()!==m?" out":"")+(s===today?" today":"")+(s===sel?" sel":"")+(d.getDay()===0?" sun":d.getDay()===6?" sat":""),"aria-label":fmtDay(s)});
     c.appendChild(el("span",{class:"dn"},d.getDate()));
     const list=byDate(s);
-    list.slice(0,3).forEach(e=>c.appendChild(el("span",{class:"chip "+cls(e),title:`${e.meal} ${sign(e)} ${e.dept}`},`${e.updatedAt?"✎ ":""}${e.meal[0]} ${sign(e)} ${e.dept}`)));
+    list.slice(0,3).forEach(e=>c.appendChild(el("span",{class:"chip "+cls(e)+(changedIds.has(String(e.id))?" newc":""),title:`${e.meal} ${sign(e)} ${e.dept}`},`${e.updatedAt?"✎ ":""}${e.meal[0]} ${sign(e)} ${e.dept}`)));
     if(list.length>3)c.appendChild(el("span",{class:"more"},`+${list.length-3}건 더`));
     if(list.length){const dots=el("span",{class:"dots"});
       const a=list.filter(e=>e.kind!=="제외").reduce((t,e)=>t+e.count,0),r=list.filter(e=>e.kind==="제외").reduce((t,e)=>t+e.count,0);
@@ -238,7 +280,7 @@ function renderDay(){
   if(!list.length){box.appendChild(el("div",{class:"empty"},"이 날은 변경이 없어요. 위에서 입력하면 바로 올라와요."));return}
   list.forEach(e=>{
     const it=el("div",{class:"item"}); it.appendChild(el("span",{class:"badge "+cls(e)},sign(e)));
-    const mid=el("div"); mid.appendChild(el("div",{class:"t"},`${e.meal} · ${e.dept}`));
+    const mid=el("div"); {const t=el("div",{class:"t"},`${e.meal} · ${e.dept}`); if(changedIds.has(String(e.id)))t.appendChild(el("span",{class:"nw"},"NEW")); mid.appendChild(t);}
     const meta=[e.memo,e.author&&("작성 "+e.author)].filter(Boolean).join(" · ");
     if(meta)mid.appendChild(el("div",{class:"m"},meta));
     String(e.updatedAt||"").split("\n").filter(Boolean).forEach(l=>mid.appendChild(el("div",{class:"m edit"},"✎ "+l))); it.appendChild(mid);
@@ -252,7 +294,7 @@ function renderDay(){
         b.disabled=true;
         try{const r=await apiPost({action:"delete",id:e.id,author:me(),pin});
           if(!r.ok){m.className="formmsg err";m.textContent=ERR[r.error]||"삭제하지 못했어요.";if(r.error==="not_found")await refresh();b.disabled=false;return}
-          sstore("ms-pin",pin); m.className="formmsg"; m.textContent="삭제했어요."; if(editId===e.id)endEdit(); await refresh();
+          sstore("ms-pin",pin); m.className="formmsg"; m.textContent="삭제했어요."; if(editId===e.id)endEdit(); await refresh(); seenOwn(me(),e.id);
         }catch(err){m.className="formmsg err";m.textContent="연결이 끊겼어요. 다시 눌러 주세요.";b.disabled=false}});
       btns.appendChild(b); it.appendChild(btns)}
     box.appendChild(it)});
@@ -264,13 +306,13 @@ function renderMonth(){
   const tb=$("mList"); tb.textContent="";
   if(!list.length){const tr=el("tr");tr.appendChild(el("td",{colspan:"6",class:"memo"},"이번 달 변경이 아직 없어요."));tb.appendChild(tr);return}
   list.forEach(e=>{const tr=el("tr",{class:"click"});
-    tr.appendChild(el("td",{},fmtDay(e.date))); tr.appendChild(el("td",{},e.meal));
+    {const td=el("td",{},fmtDay(e.date)); if(changedIds.has(String(e.id)))td.appendChild(el("span",{class:"nw"},"NEW")); tr.appendChild(td);} tr.appendChild(el("td",{},e.meal));
     {const td=el("td",{class:"n "+cls(e)},sign(e)+(e.updatedAt?" ✎":""));if(e.updatedAt)td.title="수정: "+String(e.updatedAt).replace(/\n/g," / ");tr.appendChild(td);} tr.appendChild(el("td",{},e.dept));
     tr.appendChild(el("td",{class:"memo"},e.memo||"")); tr.appendChild(el("td",{},e.author||""));
     tr.addEventListener("click",()=>{sel=e.date;render();$("dh").scrollIntoView({block:"nearest"})});
     tb.appendChild(tr)});
 }
-function render(){renderCal();renderDay();renderMonth()}
+function render(){renderNotice();renderCal();renderDay();renderMonth()}
 
 /* ---- 수정 ---- */
 function startEdit(e){
@@ -304,7 +346,7 @@ $("f").addEventListener("submit",async ev=>{
     if(!r.ok){m.className="formmsg err";m.textContent=ERR[r.error]||"저장하지 못했어요.";if(r.error==="pin")$("fPin").focus();if(r.error==="not_found")await refresh();dupKey="";$("fBtn").textContent=wasEdit?"수정 저장":"일정표에 올리기";return}
     store("ms-author",author); sstore("ms-pin",pin); endEdit();
     m.className="formmsg"; m.textContent=r.same?"바뀐 내용이 없어서 그대로 두었어요.":`${wasEdit?"수정했어요":"올렸어요"}: ${fmtDay(date)} ${meal} ${kind==="제외"?"−":"+"}${count}명 · ${dept}`;
-    sel=date; const d=new Date(date+"T00:00:00"); view=new Date(d.getFullYear(),d.getMonth(),1); await refresh();
+    sel=date; const d=new Date(date+"T00:00:00"); view=new Date(d.getFullYear(),d.getMonth(),1); await refresh(); seenOwn(author);
   }catch(err){m.className="formmsg err";m.textContent="연결이 끊겼어요. 다시 눌러 주세요."}
   finally{$("fBtn").disabled=false}
 });
