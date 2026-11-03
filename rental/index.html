@@ -113,7 +113,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <div><b id="nOut">–</b><span>대여 중</span></div>
     <div class="late"><b id="nLate">–</b><span>반납 지연</span></div>
     <div class="soon"><b id="nSoon">–</b><span>3일 내 반납</span></div>
-    <div class="wait"><b id="nWait">–</b><span>대기</span></div>
+    <div class="wait"><b id="nWait">–</b><span>예약</span></div>
   </section>
 </div></div>
 
@@ -123,7 +123,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <div class="apply-wrap apply-only">
     <form id="f" autocomplete="off">
       <h2 id="fTitle">대여 신청</h2>
-      <div class="mode" role="group" aria-label="등록 종류"><button type="button" id="mNow" aria-pressed="true">바로 대여</button><button type="button" id="mWait" aria-pressed="false">대기 걸기</button></div>
+      <div class="mode" role="group" aria-label="등록 종류"><button type="button" id="mNow" aria-pressed="true">바로 대여</button><button type="button" id="mWait" aria-pressed="false">미리 예약</button></div>
       <div class="sub">물품 · 수량</div>
       <div class="items" id="items"></div>
       <datalist id="itemList"></datalist>
@@ -157,7 +157,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
       <div class="listhead">
         <div class="tabs" role="tablist">
           <button type="button" role="tab" id="tOut" aria-selected="true">대여 중</button>
-          <button type="button" role="tab" id="tWait" aria-selected="false">대기</button>
+          <button type="button" role="tab" id="tWait" aria-selected="false">예약</button>
           <button type="button" role="tab" id="tDone" aria-selected="false">반납 완료</button>
         </div>
         <input class="search" id="q" type="search" placeholder="물품·대여자 검색">
@@ -186,7 +186,7 @@ const parse=t=>String(t||"").split(/\n|,/).map(x=>x.trim()).filter(Boolean).map(
 const total=r=>parse(r.items).reduce((a,i)=>a+i.qty,0);
 
 function setMode(m){mode=m;$("mNow").setAttribute("aria-pressed",m==="now");$("mWait").setAttribute("aria-pressed",m==="wait");
-  $("fTitle").textContent=m==="now"?"대여 신청":"대기 신청";$("lOut").textContent=m==="now"?"대여일":"희망 대여일";$("save").textContent=m==="now"?"신청하기":"대기 걸기"}
+  $("fTitle").textContent=m==="now"?"대여 신청":"예약 신청";$("lOut").textContent=m==="now"?"대여일":"가져갈 날";$("save").textContent=m==="now"?"신청하기":"예약하기";if(m==="wait"&&$("out").value<=TODAY){const d=new Date();d.setDate(d.getDate()+1);$("out").value=ymd(d)}}
 $("mNow").onclick=()=>setMode("now");$("mWait").onclick=()=>setMode("wait");
 
 function chips(){const set=new Set(["테이블보","볼펜"]);rows.forEach(r=>parse(r.items).forEach(i=>set.add(i.item)));
@@ -204,7 +204,7 @@ function itemsText(){return [...document.querySelectorAll(".irow")].map(r=>({n:r
 
 function status(r){
   if(r.status==="반납 완료")return{cls:"done",txt:"반납 완료"};
-  if(r.status==="대기"){const names=parse(r.items).map(i=>i.item);const busyNow=rows.some(o=>o!==r&&o.status==="대여 중"&&parse(o.items).some(i=>names.includes(i.item)));return{cls:"wait",txt:busyNow?"대기 · 대여 중":"대기"}}
+  if(r.status==="대기"){if(!r.out)return{cls:"wait",txt:"예약"};const d=days(TODAY,r.out);return{cls:"wait",txt:d>0?"수령 D-"+d:d===0?"오늘 수령":"수령일 "+(-d)+"일 지남"}}
   if(!r.due)return{cls:"ok",txt:"대여 중"};
   const d=days(TODAY,r.due);
   if(d<0)return{cls:"late",txt:(-d)+"일 지연"};
@@ -221,13 +221,13 @@ function render(){
   $("nLate").textContent=outs.filter(r=>r.due&&r.due<TODAY).length;
   $("nSoon").textContent=outs.filter(r=>r.due&&r.due>=TODAY&&days(TODAY,r.due)<=3).length;
   $("nWait").textContent=waits.length;
-  $("hOut").textContent=tab==="wait"?"희망 대여일":"대여일";$("hDue").textContent=tab==="done"?"반납일":"반납 예정일";
+  $("hOut").textContent=tab==="wait"?"가져갈 날":"대여일";$("hDue").textContent=tab==="done"?"반납일":"반납 예정일";
   const q=$("q").value.trim();
   let list=tab==="out"?outs:tab==="wait"?waits:rows.filter(r=>r.status==="반납 완료");
   if(q)list=list.filter(r=>[r.items,r.who,r.use,r.dept].join(" ").includes(q));
   list=list.slice().sort(tab==="done"?(a,b)=>(b.returned||"").localeCompare(a.returned||""):tab==="wait"?(a,b)=>(a.out||"").localeCompare(b.out||""):(a,b)=>(a.due||"9").localeCompare(b.due||"9"));
   const box=$("list");box.textContent="";
-  if(!list.length){box.append(el("div","empty",q?"검색 결과가 없습니다.":tab==="out"?"대여 중인 물품이 없습니다.":tab==="wait"?"대기 중인 신청이 없습니다.":"반납 완료된 기록이 없습니다."));return}
+  if(!list.length){box.append(el("div","empty",q?"검색 결과가 없습니다.":tab==="out"?"대여 중인 물품이 없습니다.":tab==="wait"?"예약된 신청이 없습니다.":"반납 완료된 기록이 없습니다."));return}
   for(const r of list){
     const st=status(r),its=parse(r.items);
     const row=el("div","tr"+(["late","soon","wait"].includes(st.cls)?" "+st.cls:""));
@@ -235,13 +235,13 @@ function render(){
     row.append(cell("num","수량 ",String(total(r))));
     row.append(cell("","용도 ",r.use||"—"));
     row.append(cell("","대여자 ",(r.who||"—")+(r.dept?" · "+r.dept:"")));
-    row.append(cell("date",tab==="wait"?"희망 대여일 ":"대여일 ",nice(r.out)));
+    row.append(cell("date",tab==="wait"?"가져갈 날 ":"대여일 ",nice(r.out)));
     row.append(cell("date",tab==="done"?"반납일 ":"반납 예정일 ",nice(tab==="done"?r.returned:r.due)));
     const s=el("div","c-stat");s.append(el("span","pill "+st.cls,st.txt));row.append(s);
     const a=el("div","acts");
     if(confirmId===r.id){a.append(btn("삭제 확인","ghost del",()=>act({action:"delete",id:r.id})),btn("취소","ghost",()=>{confirmId=null;render()}))}
     else{
-      if(r.status==="대기")a.append(btn("대여 시작","ghost ok",()=>act({action:"status",id:r.id,status:"대여 중",startToday:true})));
+      if(r.status==="대기")a.append(btn("가져감 (대여 시작)","ghost ok",()=>act({action:"status",id:r.id,status:"대여 중",startToday:true})));
       else if(r.status==="대여 중")a.append(btn("반납 처리","ghost ok",()=>openEdit(r.id,"return")));
       else a.append(btn("대여 중으로","ghost",()=>act({action:"status",id:r.id,status:"대여 중"})));
       a.append(btn("비고","ghost",()=>openEdit(r.id,"note")));
@@ -274,7 +274,7 @@ $("f").addEventListener("submit",async e=>{e.preventDefault();
   const data={kind:mode==="wait"?"대기":"바로 대여",items:itemsText(),use:$("use").value.trim(),who:$("who").value.trim(),dept:$("dept").value.trim(),out:$("out").value,due:$("due").value};
   if(!data.items||!data.use||!data.who||!data.dept||!data.out||!data.due){say(ERR.missing,false);return}
   $("save").disabled=true;
-  try{const d=await post({action:"add",data});if(!d.ok){say(ERR[d.error]||ERR.bad,false)}else{apply(d);["use","who","dept","due"].forEach(k=>$(k).value="");resetItems();$("out").value=TODAY;say((data.kind==="대기"?"대기 신청했습니다: ":"신청했습니다: ")+parse(data.items).map(i=>i.item+" "+i.qty+"개").join(", "),true);tab=data.kind==="대기"?"wait":"out";setTab()}}
+  try{const d=await post({action:"add",data});if(!d.ok){say(ERR[d.error]||ERR.bad,false)}else{apply(d);["use","who","dept","due"].forEach(k=>$(k).value="");resetItems();$("out").value=TODAY;say((data.kind==="대기"?"예약했습니다: ":"신청했습니다: ")+parse(data.items).map(i=>i.item+" "+i.qty+"개").join(", "),true);tab=data.kind==="대기"?"wait":"out";setTab()}}
   catch(err){say("저장하지 못했어요. 인터넷 연결을 확인해 주세요.",false)}finally{$("save").disabled=false}});
 function setTab(){$("tOut").setAttribute("aria-selected",tab==="out");$("tWait").setAttribute("aria-selected",tab==="wait");$("tDone").setAttribute("aria-selected",tab==="done");render()}
 $("tOut").onclick=()=>{tab="out";setTab()};$("tWait").onclick=()=>{tab="wait";setTab()};$("tDone").onclick=()=>{tab="done";setTab()};
