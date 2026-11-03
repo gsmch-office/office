@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>사무국 물품 대여장 · 선한목자교회 사무국</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#f2f4f8; --surface:#ffffff; --fg:#1b2333; --muted:#5f6a7d; --line:#dbe0ea; --head:#f7f8fb;
+  --accent:#2c4a8a; --accent-fg:#ffffff; --accent-soft:#e6ecf8; --band:#1f3566; --band-fg:#eef2fb; --band-muted:#aebbd8;
+  --warn:#b8690f; --warn-soft:#fdf0dc; --bad:#c0392b; --bad-soft:#fbe5e2; --good:#2f7d5b; --good-soft:#e2f2ea; --wait:#6a4fb3; --wait-soft:#efeafb;
+  --sans:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.in{max-width:1120px;margin:0 auto}
+.band{background:var(--band);color:var(--band-fg);padding-block:18px 20px}
+.band .in{display:grid;gap:14px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px}
+.top a{color:var(--band-muted);font-size:13px;text-decoration:none}
+h1{font-size:23px;font-weight:700;margin:0}
+.status{color:var(--band-muted);font-size:13px}
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sum div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;display:grid;gap:2px}
+.sum b{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.sum span{font-size:13px;color:var(--band-muted)}
+.sum .late b{color:#ff9d92} .sum .soon b{color:#ffc978} .sum .wait b{color:#c9b8ff}
+.body{padding-block:18px 40px}
+.banner{background:var(--warn-soft);border-radius:10px;padding:10px 14px;font-size:14px;margin-bottom:12px}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:820px){.main{grid-template-columns:minmax(0,1fr)}}
+form{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+h2{font-size:16px;margin:0;font-weight:600}
+label{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:500;min-width:0}
+input,select,textarea{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:0 10px;height:40px;width:100%;min-width:0}
+textarea{height:auto;padding:8px 10px;resize:vertical}
+input[type=date]{padding:0 8px;font-size:14px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:3px}
+.mode button{font:inherit;font-size:14px;border:0;background:none;color:var(--muted);padding:6px;border-radius:6px;cursor:pointer}
+.mode button[aria-pressed="true"]{background:var(--surface);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:-4px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--accent);border-radius:999px;padding:2px 10px;cursor:pointer}
+.btn{font:inherit;font-weight:600;border:0;border-radius:8px;height:42px;cursor:pointer;background:var(--accent);color:var(--accent-fg)}
+.btn:disabled{opacity:.5;cursor:default}
+.msg{font-size:13px;min-height:1em}
+.msg.ok{color:var(--good)} .msg.err{color:var(--bad)}
+.who-box{background:var(--head);border:1px solid var(--line);border-radius:9px;padding:10px;display:grid;gap:8px}
+.who-box .t{font-size:12px;color:var(--muted)}
+.listhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:3px}
+.tabs button{font:inherit;font-size:14px;border:0;background:none;color:var(--muted);padding:5px 14px;border-radius:6px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.search{max-width:220px}
+.ledger{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tr{display:grid;grid-template-columns:minmax(0,1.4fr) 52px minmax(0,1.4fr) minmax(0,1fr) 92px 92px 96px 120px;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--line);font-size:14px}
+.tr.th{border-top:0;background:var(--head);color:var(--muted);font-size:12px;font-weight:600;padding-block:9px}
+.tr>*{min-width:0;overflow-wrap:anywhere}
+.tr.late{box-shadow:inset 4px 0 var(--bad)} .tr.soon{box-shadow:inset 4px 0 var(--warn)} .tr.wait{box-shadow:inset 4px 0 var(--wait)}
+.c-item{font-weight:600} .c-item span{display:block}
+.src{display:inline-block;font-size:11px;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-top:2px}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.date{font-variant-numeric:tabular-nums;font-size:13px}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.late{background:var(--bad-soft);color:var(--bad)} .pill.soon{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--accent-soft);color:var(--accent)} .pill.done{background:var(--good-soft);color:var(--good)} .pill.wait{background:var(--wait-soft);color:var(--wait)}
+.acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.ghost{font:inherit;font-size:12.5px;background:var(--surface);border:1px solid var(--line);color:var(--fg);border-radius:7px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+.ghost.ok{border-color:var(--accent);color:var(--accent);font-weight:600}
+.ghost.del{color:var(--bad)}
+.k{display:none}
+.empty{padding:26px;color:var(--muted);text-align:center;font-size:14px;border-top:1px solid var(--line)}
+@media (max-width:980px){
+  .tr.th{display:none}
+  .tr{grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:12px 14px}
+  .tr>.c-item{grid-column:1/-1;font-size:16px}
+  .tr>.c-stat{grid-column:1/-1;order:-1}
+  .tr>.acts{grid-column:1/-1;justify-content:flex-start;margin-top:4px}
+  .k{display:block;font-size:12px;color:var(--muted)}
+  .num{text-align:left}
+}
+</style>
+</head>
+<body>
+<div class="band gut"><div class="in">
+  <div class="top"><h1>사무국 물품 대여장</h1><span class="status" id="status">불러오는 중…</span></div>
+  <section class="sum" aria-label="요약">
+    <div><b id="nOut">–</b><span>대여 중</span></div>
+    <div class="late"><b id="nLate">–</b><span>반납 지연</span></div>
+    <div class="soon"><b id="nSoon">–</b><span>3일 내 반납</span></div>
+    <div class="wait"><b id="nWait">–</b><span>대기</span></div>
+  </section>
+</div></div>
+
+<div class="body gut"><div class="in">
+  <div class="banner" id="banner" hidden></div>
+  <div class="main">
+    <form id="f" autocomplete="off">
+      <h2 id="fTitle">대여 등록</h2>
+      <div class="mode" role="group" aria-label="등록 종류"><button type="button" id="mNow" aria-pressed="true">바로 대여</button><button type="button" id="mWait" aria-pressed="false">대기 걸기</button></div>
+      <label for="items">물품과 수량 <span style="font-weight:400">(한 줄에 하나씩)</span><textarea id="items" rows="3" required placeholder="테이블보 5&#10;볼펜 10"></textarea></label>
+      <div class="chips" id="chips"></div>
+      <label for="use">용도<input id="use" required placeholder="예: 갈렙교회 행사"></label>
+      <label for="who">대여자<input id="who" required placeholder="예: 전별림 전도사"></label>
+      <div class="row2">
+        <label for="out"><span id="lOut">대여일</span><input id="out" type="date" required></label>
+        <label for="due">반납 예정일<input id="due" type="date" required></label>
+      </div>
+      <div class="who-box">
+        <div class="t">적는 사람 확인 (작성자만 등록·수정할 수 있어요)</div>
+        <div class="row2">
+          <label for="author">작성자<select id="author"><option value="">선택</option></select></label>
+          <label for="pin">비밀번호<input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="4자리"></label>
+        </div>
+      </div>
+      <button class="btn" id="save" type="submit">등록하기</button>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+
+    <section>
+      <div class="listhead">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" id="tOut" aria-selected="true">대여 중</button>
+          <button type="button" role="tab" id="tWait" aria-selected="false">대기</button>
+          <button type="button" role="tab" id="tDone" aria-selected="false">반납 완료</button>
+        </div>
+        <input class="search" id="q" type="search" placeholder="물품·대여자 검색">
+      </div>
+      <div class="ledger">
+        <div class="tr th"><span>물품명</span><span style="text-align:right">수량</span><span>용도</span><span>대여자</span><span id="hOut">대여일</span><span id="hDue">반납 예정일</span><span>상태</span><span></span></div>
+        <div id="list"><div class="empty">불러오는 중…</div></div>
+      </div>
+    </section>
+  </div>
+</div></div>
+
+<script>
+const API="https://script.google.com/macros/s/AKfycbyxB7SpEN--KIUyncSBNlPCivRB2EUMU3-zTha-ZP1hG7blk-mDcOrZ1I8yZtA-vuXh/exec";
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const TODAY=ymd(new Date()), W="일월화수목금토";
+const nice=s=>{if(!s)return"—";const d=new Date(s+"T00:00");if(isNaN(d))return s;return pad(d.getMonth()+1)+"."+pad(d.getDate())+" ("+W[d.getDay()]+")"};
+const days=(a,b)=>Math.round((new Date(b+"T00:00")-new Date(a+"T00:00"))/864e5);
+const load=k=>{try{return localStorage.getItem(k)}catch(e){return null}}, store=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+$("out").value=TODAY;
+
+let rows=[],tab="out",mode="now",confirmId=null,busy=false;
+const parse=t=>String(t||"").split(/\n|,/).map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.match(/^(.*?)[\s:x×]*(\d+)\s*(개|장|박스|ea)?$/i);return m&&m[1].trim()?{item:m[1].trim(),qty:+m[2]}:{item:x,qty:1}});
+const total=r=>parse(r.items).reduce((a,i)=>a+i.qty,0);
+
+function setMode(m){mode=m;$("mNow").setAttribute("aria-pressed",m==="now");$("mWait").setAttribute("aria-pressed",m==="wait");
+  $("fTitle").textContent=m==="now"?"대여 등록":"대기 등록";$("lOut").textContent=m==="now"?"대여일":"희망 대여일";$("save").textContent=m==="now"?"등록하기":"대기 걸기"}
+$("mNow").onclick=()=>setMode("now");$("mWait").onclick=()=>setMode("wait");
+
+function chips(){const set=new Set(["테이블보","볼펜"]);rows.forEach(r=>parse(r.items).forEach(i=>set.add(i.item)));
+  const box=$("chips");box.textContent="";[...set].slice(0,8).forEach(t=>{const b=el("button","chip",t);b.type="button";
+  b.onclick=()=>{const ta=$("items");ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+t+" 1";ta.focus()};box.append(b)})}
+
+function status(r){
+  if(r.status==="반납 완료")return{cls:"done",txt:"반납 완료"};
+  if(r.status==="대기"){const names=parse(r.items).map(i=>i.item);const busyNow=rows.some(o=>o!==r&&o.status==="대여 중"&&parse(o.items).some(i=>names.includes(i.item)));return{cls:"wait",txt:busyNow?"대기 · 대여 중":"대기"}}
+  if(!r.due)return{cls:"ok",txt:"대여 중"};
+  const d=days(TODAY,r.due);
+  if(d<0)return{cls:"late",txt:(-d)+"일 지연"};
+  if(d===0)return{cls:"soon",txt:"오늘 반납"};
+  return{cls:d<=3?"soon":"ok",txt:"D-"+d};
+}
+function el(t,c,txt){const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e}
+function cell(c,k,v){const s=el("div",c);s.append(el("span","k",k),document.createTextNode(v));return s}
+function btn(t,c,f){const b=el("button",c,t);b.type="button";b.onclick=f;return b}
+
+function render(){
+  const outs=rows.filter(r=>r.status==="대여 중"), waits=rows.filter(r=>r.status==="대기");
+  $("nOut").textContent=outs.reduce((s,r)=>s+total(r),0);
+  $("nLate").textContent=outs.filter(r=>r.due&&r.due<TODAY).length;
+  $("nSoon").textContent=outs.filter(r=>r.due&&r.due>=TODAY&&days(TODAY,r.due)<=3).length;
+  $("nWait").textContent=waits.length;
+  $("hOut").textContent=tab==="wait"?"희망 대여일":"대여일";$("hDue").textContent=tab==="done"?"반납일":"반납 예정일";
+  const q=$("q").value.trim();
+  let list=tab==="out"?outs:tab==="wait"?waits:rows.filter(r=>r.status==="반납 완료");
+  if(q)list=list.filter(r=>[r.items,r.who,r.use].join(" ").includes(q));
+  list=list.slice().sort(tab==="done"?(a,b)=>(b.returned||"").localeCompare(a.returned||""):tab==="wait"?(a,b)=>(a.out||"").localeCompare(b.out||""):(a,b)=>(a.due||"9").localeCompare(b.due||"9"));
+  const box=$("list");box.textContent="";
+  if(!list.length){box.append(el("div","empty",q?"검색 결과가 없습니다.":tab==="out"?"대여 중인 물품이 없습니다.":tab==="wait"?"대기 중인 신청이 없습니다.":"반납 완료된 기록이 없습니다."));return}
+  for(const r of list){
+    const st=status(r),its=parse(r.items);
+    const row=el("div","tr"+(["late","soon","wait"].includes(st.cls)?" "+st.cls:""));
+    const ci=el("div","c-item");its.forEach(i=>ci.append(el("span","",i.item+(its.length>1?" "+i.qty+"개":""))));if(r.source==="QR 신청")ci.append(el("span","src","QR 신청"));row.append(ci);
+    row.append(cell("num","수량 ",String(total(r))));
+    row.append(cell("","용도 ",r.use||"—"));
+    row.append(cell("","대여자 ",r.who||"—"));
+    row.append(cell("date",tab==="wait"?"희망 대여일 ":"대여일 ",nice(r.out)));
+    row.append(cell("date",tab==="done"?"반납일 ":"반납 예정일 ",nice(tab==="done"?r.returned:r.due)));
+    const s=el("div","c-stat");s.append(el("span","pill "+st.cls,st.txt));row.append(s);
+    const a=el("div","acts");
+    if(confirmId===r.id){a.append(btn("삭제 확인","ghost del",()=>act({action:"delete",id:r.id})),btn("취소","ghost",()=>{confirmId=null;render()}))}
+    else{
+      if(r.status==="대기")a.append(btn("대여 시작","ghost ok",()=>act({action:"status",id:r.id,status:"대여 중",startToday:true})));
+      else if(r.status==="대여 중")a.append(btn("반납 처리","ghost ok",()=>act({action:"status",id:r.id,status:"반납 완료"})));
+      else a.append(btn("대여 중으로","ghost",()=>act({action:"status",id:r.id,status:"대여 중"})));
+      a.append(btn("삭제","ghost del",()=>{confirmId=r.id;render()}));
+    }
+    row.append(a);box.append(row);
+  }
+}
+
+function say(t,ok){const m=$("msg");m.textContent=t;m.className="msg "+(ok?"ok":"err")}
+const ERR={pin:"작성자 또는 비밀번호가 맞지 않아요. 왼쪽 아래 「적는 사람 확인」을 채워 주세요.",missing:"빈 칸을 모두 채워 주세요.",not_found:"이미 지워진 기록이에요. 새로고침했어요.",busy:"다른 분이 저장 중이에요. 잠시 후 다시 눌러 주세요.",bad:"요청을 처리하지 못했어요."};
+function creds(){const author=$("author").value,pin=$("pin").value.trim();if(!author||pin.length!==4){say(ERR.pin,false);$("author").focus();return null}store("rent-author",author);return{author,pin}}
+
+async function apply(d){if(d&&d.entries){rows=d.entries;const s=$("author"),cur=s.value||load("rent-author")||"";s.textContent="";s.append(new Option("선택",""));(d.authors||[]).forEach(a=>s.append(new Option(a,a)));s.value=(d.authors||[]).includes(cur)?cur:"";chips();render();
+  $("status").textContent="최신 · "+new Date().toTimeString().slice(0,5)+" 기준";$("banner").hidden=true}}
+async function refresh(){try{const r=await fetch(API+"?t="+Date.now());const d=await r.json();if(!d.ok)throw 0;apply(d)}
+  catch(e){$("status").textContent="연결 안 됨";const b=$("banner");b.hidden=false;b.textContent="대여장 저장소에 연결하지 못했어요. 잠시 후 새로고침해 주세요.";if(!rows.length)$("list").innerHTML='<div class="empty">불러오지 못했습니다.</div>'}}
+async function post(body){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});return r.json()}
+async function act(o){const c=creds();if(!c)return;if(busy)return;busy=true;confirmId=null;
+  try{const d=await post({...o,...c});if(!d.ok){say(ERR[d.error]||ERR.bad,false);if(d.error==="not_found")refresh()}else{apply(d);say("저장했습니다.",true)}}
+  catch(e){say("저장하지 못했어요. 인터넷 연결을 확인해 주세요.",false)}finally{busy=false}}
+
+$("f").addEventListener("submit",async e=>{e.preventDefault();
+  const data={kind:mode==="wait"?"대기":"바로 대여",items:$("items").value.trim(),use:$("use").value.trim(),who:$("who").value.trim(),out:$("out").value,due:$("due").value};
+  if(!data.items||!data.use||!data.who||!data.out||!data.due){say(ERR.missing,false);return}
+  const c=creds();if(!c)return;$("save").disabled=true;
+  try{const d=await post({action:"add",data,...c});if(!d.ok){say(ERR[d.error]||ERR.bad,false)}else{apply(d);["items","use","who","due"].forEach(k=>$(k).value="");$("out").value=TODAY;say((data.kind==="대기"?"대기 걸었습니다: ":"등록했습니다: ")+parse(data.items).map(i=>i.item+" "+i.qty+"개").join(", "),true);tab=data.kind==="대기"?"wait":"out";setTab()}}
+  catch(err){say("저장하지 못했어요. 인터넷 연결을 확인해 주세요.",false)}finally{$("save").disabled=false}});
+function setTab(){$("tOut").setAttribute("aria-selected",tab==="out");$("tWait").setAttribute("aria-selected",tab==="wait");$("tDone").setAttribute("aria-selected",tab==="done");render()}
+$("tOut").onclick=()=>{tab="out";setTab()};$("tWait").onclick=()=>{tab="wait";setTab()};$("tDone").onclick=()=>{tab="done";setTab()};
+$("q").addEventListener("input",render);
+chips();refresh();setInterval(()=>{if(!document.hidden&&!busy)refresh()},60000);
+</script>
+</body>
+</html>
