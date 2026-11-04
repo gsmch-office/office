@@ -186,7 +186,7 @@ const parse=t=>String(t||"").split(/\n|,/).map(x=>x.trim()).filter(Boolean).map(
 const total=r=>parse(r.items).reduce((a,i)=>a+i.qty,0);
 
 function setMode(m){mode=m;$("mNow").setAttribute("aria-pressed",m==="now");$("mWait").setAttribute("aria-pressed",m==="wait");
-  $("fTitle").textContent=m==="now"?"대여 신청":"예약 신청";$("lOut").textContent=m==="now"?"대여일":"가져갈 날";$("save").textContent=m==="now"?"신청하기":"예약하기";if(m==="wait"&&$("out").value<=TODAY){const d=new Date();d.setDate(d.getDate()+1);$("out").value=ymd(d)}}
+  $("fTitle").textContent=m==="now"?"대여 신청":"예약 신청";$("lOut").textContent=m==="now"?"대여일":"대여일";$("save").textContent=m==="now"?"신청하기":"예약하기";if(m==="wait"&&$("out").value<=TODAY){const d=new Date();d.setDate(d.getDate()+1);$("out").value=ymd(d)}}
 $("mNow").onclick=()=>setMode("now");$("mWait").onclick=()=>setMode("wait");
 
 function chips(){const set=new Set(["테이블보","볼펜"]);rows.forEach(r=>parse(r.items).forEach(i=>set.add(i.item)));
@@ -195,7 +195,7 @@ function chips(){const set=new Set(["테이블보","볼펜"]);rows.forEach(r=>pa
   const dl=$("itemList");dl.textContent="";[...set].forEach(t=>{const o=document.createElement("option");o.value=t;dl.append(o)})}
 let rowN=0;
 function addRow(){const n=++rowN,d=el("div","irow");
-  const a=document.createElement("input");a.className="nm";a.id="nm"+n;a.setAttribute("list","itemList");a.placeholder="물품 선택 또는 입력";a.setAttribute("aria-label","물품");
+  const a=document.createElement("input");a.className="nm";a.id="nm"+n;a.placeholder="물품 입력";a.setAttribute("aria-label","물품");
   const b=document.createElement("input");b.className="qt";b.id="qt"+n;b.type="number";b.min="1";b.value="1";b.setAttribute("aria-label","수량");
   const x=btn("×","x",()=>{if(document.querySelectorAll(".irow").length>1)d.remove();else{a.value="";b.value="1"}});x.setAttribute("aria-label","이 물품 빼기");
   d.append(a,b,x);$("items").append(d);return a}
@@ -221,7 +221,7 @@ function render(){
   $("nLate").textContent=outs.filter(r=>r.due&&r.due<TODAY).length;
   $("nSoon").textContent=outs.filter(r=>r.due&&r.due>=TODAY&&days(TODAY,r.due)<=3).length;
   $("nWait").textContent=waits.length;
-  $("hOut").textContent=tab==="wait"?"가져갈 날":"대여일";$("hDue").textContent=tab==="done"?"반납일":"반납 예정일";
+  $("hOut").textContent=tab==="wait"?"대여일":"대여일";$("hDue").textContent=tab==="done"?"반납일":"반납 예정일";
   const q=$("q").value.trim();
   let list=tab==="out"?outs:tab==="wait"?waits:rows.filter(r=>r.status==="반납 완료");
   if(q)list=list.filter(r=>[r.items,r.who,r.use,r.dept].join(" ").includes(q));
@@ -235,7 +235,7 @@ function render(){
     row.append(cell("num","수량 ",String(total(r))));
     row.append(cell("","용도 ",r.use||"—"));
     row.append(cell("","대여자 ",(r.who||"—")+(r.dept?" · "+r.dept:"")));
-    row.append(cell("date",tab==="wait"?"가져갈 날 ":"대여일 ",nice(r.out)));
+    row.append(cell("date",tab==="wait"?"대여일 ":"대여일 ",nice(r.out)));
     row.append(cell("date",tab==="done"?"반납일 ":"반납 예정일 ",nice(tab==="done"?r.returned:r.due)));
     const s=el("div","c-stat");s.append(el("span","pill "+st.cls,st.txt));row.append(s);
     const a=el("div","acts");
