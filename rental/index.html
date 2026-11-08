@@ -79,6 +79,18 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .num{text-align:right;font-variant-numeric:tabular-nums}
 .date{font-variant-numeric:tabular-nums;font-size:13px}
 .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.rep{background:var(--good-soft);color:var(--good)} .tr.rep{box-shadow:inset 4px 0 var(--good)}
+.view{margin-bottom:12px}
+[hidden]{display:none!important}
+.rbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+.rbox h2{margin:0}
+.rfind{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.rfind .btn{padding:0 16px;height:40px}
+.ritem{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px}
+.ritem b{font-size:15px}
+.ritem .meta{font-size:13px;color:var(--muted)}
+.ritem .btn{height:38px}
+.ritem .pill{justify-self:start}
 .pill.late{background:var(--bad-soft);color:var(--bad)} .pill.soon{background:var(--warn-soft);color:var(--warn)}
 .pill.ok{background:var(--accent-soft);color:var(--accent)} .pill.done{background:var(--good-soft);color:var(--good)} .pill.wait{background:var(--wait-soft);color:var(--wait)}
 .acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
@@ -121,6 +133,15 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <div class="banner" id="banner" hidden></div>
   <div class="main">
     <div class="apply-wrap apply-only">
+    <div class="mode view" role="group" aria-label="할 일"><button type="button" id="vApply" aria-pressed="true">대여 신청</button><button type="button" id="vReturn" aria-pressed="false">반납 신고</button></div>
+    <div class="rbox" id="rbox" hidden>
+      <h2>반납 신고</h2>
+      <div style="font-size:13.5px;color:var(--muted)">물품을 사무국에 돌려놓았다면 여기서 신고해 주세요. 담당자가 확인하면 「반납 완료」로 바뀌어요.</div>
+      <label for="rWho">대여자 이름 (신청할 때 쓴 이름)<div class="rfind"><input id="rWho" placeholder="예: 전별림 전도사"><button type="button" class="btn" id="rFind">내 대여 찾기</button></div></label>
+      <label for="rNote">메모 (선택)<input id="rNote" placeholder="예: 사무실 앞 선반에 두었어요"></label>
+      <div id="rList"></div>
+      <div class="msg" id="msg3" role="status"></div>
+    </div>
     <form id="f" autocomplete="off">
       <h2 id="fTitle">대여 신청</h2>
       <div class="mode" role="group" aria-label="등록 종류"><button type="button" id="mNow" aria-pressed="true">바로 대여</button><button type="button" id="mWait" aria-pressed="false">미리 예약</button></div>
@@ -203,6 +224,7 @@ function resetItems(){$("items").textContent="";addRow()}
 function itemsText(){return [...document.querySelectorAll(".irow")].map(r=>({n:r.querySelector(".nm").value.trim(),q:Math.max(1,parseInt(r.querySelector(".qt").value)||1)})).filter(i=>i.n).map(i=>i.n+" "+i.q).join("\n")}
 
 function status(r){
+  if(r.status==="반납 신고")return{cls:"rep",txt:"반납 신고"+(r.returned?" "+r.returned.slice(5).replace("-","."):"")};
   if(r.status==="반납 완료")return{cls:"done",txt:"반납 완료"};
   if(r.status==="대기"){if(!r.out)return{cls:"wait",txt:"예약"};const d=days(TODAY,r.out);return{cls:"wait",txt:d>0?"수령 D-"+d:d===0?"오늘 수령":"수령일 "+(-d)+"일 지남"}}
   if(!r.due)return{cls:"ok",txt:"대여 중"};
@@ -216,21 +238,21 @@ function cell(c,k,v){const s=el("div",c);s.append(el("span","k",k),document.crea
 function btn(t,c,f){const b=el("button",c,t);b.type="button";b.onclick=f;return b}
 
 function render(){
-  const outs=rows.filter(r=>r.status==="대여 중"), waits=rows.filter(r=>r.status==="대기");
+  const outs=rows.filter(r=>r.status==="대여 중"), reps=rows.filter(r=>r.status==="반납 신고"), waits=rows.filter(r=>r.status==="대기");
   $("nOut").textContent=outs.reduce((s,r)=>s+total(r),0);
   $("nLate").textContent=outs.filter(r=>r.due&&r.due<TODAY).length;
   $("nSoon").textContent=outs.filter(r=>r.due&&r.due>=TODAY&&days(TODAY,r.due)<=3).length;
   $("nWait").textContent=waits.length;
   $("hOut").textContent=tab==="wait"?"대여일":"대여일";$("hDue").textContent=tab==="done"?"반납일":"반납 예정일";
   const q=$("q").value.trim();
-  let list=tab==="out"?outs:tab==="wait"?waits:rows.filter(r=>r.status==="반납 완료");
+  let list=tab==="out"?reps.concat(outs):tab==="wait"?waits:rows.filter(r=>r.status==="반납 완료");
   if(q)list=list.filter(r=>[r.items,r.who,r.use,r.dept].join(" ").includes(q));
   list=list.slice().sort(tab==="done"?(a,b)=>(b.returned||"").localeCompare(a.returned||""):tab==="wait"?(a,b)=>(a.out||"").localeCompare(b.out||""):(a,b)=>(a.due||"9").localeCompare(b.due||"9"));
   const box=$("list");box.textContent="";
   if(!list.length){box.append(el("div","empty",q?"검색 결과가 없습니다.":tab==="out"?"대여 중인 물품이 없습니다.":tab==="wait"?"예약된 신청이 없습니다.":"반납 완료된 기록이 없습니다."));return}
   for(const r of list){
     const st=status(r),its=parse(r.items);
-    const row=el("div","tr"+(["late","soon","wait"].includes(st.cls)?" "+st.cls:""));
+    const row=el("div","tr"+(["late","soon","wait","rep"].includes(st.cls)?" "+st.cls:""));
     const ci=el("div","c-item");its.forEach(i=>ci.append(el("span","",i.item+(its.length>1?" "+i.qty+"개":""))));if(r.source==="QR 신청")ci.append(el("span","src","QR 신청"));row.append(ci);
     row.append(cell("num","수량 ",String(total(r))));
     row.append(cell("","용도 ",r.use||"—"));
@@ -243,14 +265,15 @@ function render(){
     else{
       if(r.status==="대기")a.append(btn("가져감 (대여 시작)","ghost ok",()=>act({action:"status",id:r.id,status:"대여 중",startToday:true})));
       else if(r.status==="대여 중")a.append(btn("반납 처리","ghost ok",()=>openEdit(r.id,"return")));
+      else if(r.status==="반납 신고")a.append(btn("반납 확인","ghost ok",()=>openEdit(r.id,"return")));
       else a.append(btn("대여 중으로","ghost",()=>act({action:"status",id:r.id,status:"대여 중"})));
       a.append(btn("비고","ghost",()=>openEdit(r.id,"note")));
       a.append(btn("삭제","ghost del",()=>{confirmId=r.id;render()}));
     }
     row.append(a);
-    if(r.note||r.author){const m=el("div","memo");m.textContent=[r.note?"비고: "+r.note:"",r.author&&r.status==="반납 완료"?"회수 담당: "+r.author:""].filter(Boolean).join("  ·  ");if(m.textContent)row.append(m)}
+    if(r.note||r.author){const m=el("div","memo");m.textContent=[r.note?"비고: "+r.note:"",r.author&&r.status==="반납 완료"?"회수 담당: "+r.author:"",r.status==="반납 신고"?"본인이 반납 신고함 → 물품 확인 후 [반납 확인]":""].filter(Boolean).join("  ·  ");if(m.textContent)row.append(m)}
     if(editId===r.id){const ed=el("div","edit");const inp=document.createElement("input");inp.id="noteIn";inp.value=r.note||"";inp.placeholder=editKind==="return"?"비고 (예: 2장 오염, 1장 덜 들어옴)":"비고 입력";
-      ed.append(inp,btn(editKind==="return"?"반납 완료":"비고 저장","ghost ok",()=>editKind==="return"?act({action:"status",id:r.id,status:"반납 완료",note:inp.value.trim()}):act({action:"note",id:r.id,note:inp.value.trim()})),btn("취소","ghost",()=>{editId=null;render()}));row.append(ed);setTimeout(()=>inp.focus(),0)}
+      ed.append(inp,btn(editKind==="return"?"반납 완료 처리":"비고 저장","ghost ok",()=>editKind==="return"?act({action:"status",id:r.id,status:"반납 완료",note:inp.value.trim()}):act({action:"note",id:r.id,note:inp.value.trim()})),btn("취소","ghost",()=>{editId=null;render()}));row.append(ed);setTimeout(()=>inp.focus(),0)}
     box.append(row);
   }
 }
@@ -279,6 +302,26 @@ $("f").addEventListener("submit",async e=>{e.preventDefault();
 function setTab(){$("tOut").setAttribute("aria-selected",tab==="out");$("tWait").setAttribute("aria-selected",tab==="wait");$("tDone").setAttribute("aria-selected",tab==="done");render()}
 $("tOut").onclick=()=>{tab="out";setTab()};$("tWait").onclick=()=>{tab="wait";setTab()};$("tDone").onclick=()=>{tab="done";setTab()};
 $("q").addEventListener("input",render);
+function setView(v){$("vApply").setAttribute("aria-pressed",v==="apply");$("vReturn").setAttribute("aria-pressed",v==="return");$("f").hidden=v!=="apply";$("rbox").hidden=v!=="return";if(v==="return"){const w=load("rent-me");if(w&&!$("rWho").value)$("rWho").value=w;if($("rWho").value)rFind();else $("rWho").focus()}}
+$("vApply").onclick=()=>setView("apply");$("vReturn").onclick=()=>setView("return");
+const norm=s=>String(s||"").replace(/\s+/g,"");
+function say3(t,ok){const m=$("msg3");m.textContent=t;m.className="msg "+(ok?"ok":"err")}
+function rFind(){const w=norm($("rWho").value);const box=$("rList");box.textContent="";say3("",true);
+  if(w.length<2){say3("대여자 이름을 2글자 이상 넣어 주세요.",false);return}
+  const mine=rows.filter(r=>(r.status==="대여 중"||r.status==="반납 신고")&&norm(r.who).includes(w));
+  if(!mine.length){box.append(el("div","empty","이 이름으로 대여 중인 물품이 없어요. 신청할 때 쓴 이름을 확인해 주세요."));return}
+  store("rent-me",$("rWho").value.trim());
+  mine.sort((a,b)=>(a.due||"9").localeCompare(b.due||"9")).forEach(r=>{const st=status(r),d=el("div","ritem");
+    d.append(el("span","pill "+st.cls,st.txt),el("b","",parse(r.items).map(i=>i.item+" "+i.qty+"개").join(", ")),el("div","meta",(r.use||"")+" · "+(r.who||"")+(r.dept?" ("+r.dept+")":"")+" · 대여 "+nice(r.out)+" ~ 반납 예정 "+nice(r.due)));
+    if(r.status==="대여 중")d.append(btn("반납했어요","btn",()=>selfReturn(r.id)));
+    else d.append(el("div","meta","신고 완료 · 담당자 확인을 기다리는 중"));
+    box.append(d)})}
+$("rFind").onclick=rFind;$("rWho").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();rFind()}});
+async function selfReturn(id){if(busy)return;busy=true;say3("신고하는 중…",true);
+  try{const d=await post({action:"selfReturn",id,who:$("rWho").value.trim(),note:$("rNote").value.trim()});
+    if(!d.ok){say3(d.error==="who"?"대여자 이름이 신청 기록과 달라요.":ERR[d.error]||ERR.bad,false);if(d.error==="not_found")refresh()}
+    else{busy=false;apply(d);$("rNote").value="";rFind();say3("반납 신고했어요. 담당자가 확인하면 반납 완료로 바뀌어요. 고맙습니다!",true)}}
+  catch(e){say3("신고하지 못했어요. 인터넷 연결을 확인해 주세요.",false)}finally{busy=false}}
 function route(){const v=location.hash==="#admin"?"admin":"apply";document.body.className="view-"+v;
   $("pageTitle").textContent=v==="admin"?"물품 대여 관리":"물품 대여 신청";document.title=(v==="admin"?"물품 대여 관리":"물품 대여 신청")+" · 선한목자교회 사무국";
   $("navApply").toggleAttribute("aria-current",v==="apply");$("navAdmin").toggleAttribute("aria-current",v==="admin");
