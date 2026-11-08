@@ -101,6 +101,10 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .memo{grid-column:1/-1;font-size:13px;color:var(--muted);background:var(--head);border-radius:6px;padding:5px 9px;margin-top:-2px}
 .edit{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--accent-soft);border-radius:8px;padding:8px}
 .edit input{flex:1 1 220px;height:34px;font-size:14px;background:var(--surface)}
+.rq{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13.5px}
+.rq .rqi{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.edit .rq input[type=number]{flex:0 0 64px;width:64px;height:32px}
+.edit .rq input[type=checkbox]{flex:none;width:16px;height:16px}
 .staff{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:end}
 .staff .row2{flex:1 1 320px;max-width:420px}
 .staff .t{flex:1 1 220px}
@@ -205,6 +209,11 @@ $("out").value=TODAY;
 let rows=[],tab="out",mode="now",confirmId=null,editId=null,editKind="",busy=false;
 const parse=t=>String(t||"").split(/\n|,/).map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.match(/^(.*?)[\s:x×]*(\d+)\s*(개|장|박스|ea)?$/i);return m&&m[1].trim()?{item:m[1].trim(),qty:+m[2]}:{item:x,qty:1}});
 const total=r=>parse(r.items).reduce((a,i)=>a+i.qty,0);
+/* 부분반납 (2026.11.08): 「반납 기록」으로 남은 수량 계산 */
+const usedOf=log=>{const u={};String(log||"").split("\n").forEach(l=>{const m=l.match(/^\d{4}-\d{2}-\d{2} (반납|분실·파손) (.+?) \(.*\)$/);if(m)m[2].split(", ").forEach(p=>{const k=p.match(/^(.*) (\d+)$/);if(k)u[k[1]]=(u[k[1]]||0)+ +k[2]})});return u};
+const remain=r=>{const u=usedOf(r.rlog);return parse(r.items).map(i=>{const x=Math.min(i.qty,u[i.item]||0);u[i.item]=(u[i.item]||0)-x;return{item:i.item,qty:i.qty-x}})};
+const left=r=>remain(r).reduce((a,i)=>a+i.qty,0);
+const partial=r=>!!r.rlog&&r.status!=="반납 완료";
 
 function setMode(m){mode=m;$("mNow").setAttribute("aria-pressed",m==="now");$("mWait").setAttribute("aria-pressed",m==="wait");
   $("fTitle").textContent=m==="now"?"대여 신청":"예약 신청";$("lOut").textContent=m==="now"?"대여일":"대여일";$("save").textContent=m==="now"?"신청하기":"예약하기";if(m==="wait"&&$("out").value<=TODAY){const d=new Date();d.setDate(d.getDate()+1);$("out").value=ymd(d)}}
@@ -239,7 +248,7 @@ function btn(t,c,f){const b=el("button",c,t);b.type="button";b.onclick=f;return 
 
 function render(){
   const outs=rows.filter(r=>r.status==="대여 중"), reps=rows.filter(r=>r.status==="반납 신고"), waits=rows.filter(r=>r.status==="대기");
-  $("nOut").textContent=outs.reduce((s,r)=>s+total(r),0);
+  $("nOut").textContent=outs.reduce((s,r)=>s+left(r),0);
   $("nLate").textContent=outs.filter(r=>r.due&&r.due<TODAY).length;
   $("nSoon").textContent=outs.filter(r=>r.due&&r.due>=TODAY&&days(TODAY,r.due)<=3).length;
   $("nWait").textContent=waits.length;
@@ -251,15 +260,15 @@ function render(){
   const box=$("list");box.textContent="";
   if(!list.length){box.append(el("div","empty",q?"검색 결과가 없습니다.":tab==="out"?"대여 중인 물품이 없습니다.":tab==="wait"?"예약된 신청이 없습니다.":"반납 완료된 기록이 없습니다."));return}
   for(const r of list){
-    const st=status(r),its=parse(r.items);
+    const st=status(r),pt=partial(r),its=pt?remain(r).filter(i=>i.qty>0):parse(r.items);
     const row=el("div","tr"+(["late","soon","wait","rep"].includes(st.cls)?" "+st.cls:""));
-    const ci=el("div","c-item");its.forEach(i=>ci.append(el("span","",i.item+(its.length>1?" "+i.qty+"개":""))));if(r.source==="QR 신청")ci.append(el("span","src","QR 신청"));row.append(ci);
-    row.append(cell("num","수량 ",String(total(r))));
+    const ci=el("div","c-item");its.forEach(i=>ci.append(el("span","",i.item+(pt?" "+i.qty+"개 남음":its.length>1?" "+i.qty+"개":""))));if(r.source==="QR 신청")ci.append(el("span","src","QR 신청"));row.append(ci);
+    row.append(cell("num","수량 ",pt?left(r)+"/"+total(r):String(total(r))));
     row.append(cell("","용도 ",r.use||"—"));
     row.append(cell("","대여자 ",(r.who||"—")+(r.dept?" · "+r.dept:"")));
     row.append(cell("date",tab==="wait"?"대여일 ":"대여일 ",nice(r.out)));
     row.append(cell("date",tab==="done"?"반납일 ":"반납 예정일 ",nice(tab==="done"?r.returned:r.due)));
-    const s=el("div","c-stat");s.append(el("span","pill "+st.cls,st.txt));row.append(s);
+    const s=el("div","c-stat");s.append(el("span","pill "+st.cls,st.txt));if(pt)s.append(el("span","pill wait","부분반납"));row.append(s);
     const a=el("div","acts");
     if(confirmId===r.id){a.append(btn("삭제 확인","ghost del",()=>act({action:"delete",id:r.id})),btn("취소","ghost",()=>{confirmId=null;render()}))}
     else{
@@ -271,15 +280,20 @@ function render(){
       a.append(btn("삭제","ghost del",()=>{confirmId=r.id;render()}));
     }
     row.append(a);
-    if(r.note||r.author){const m=el("div","memo");m.textContent=[r.note?"비고: "+r.note:"",r.author&&r.status==="반납 완료"?"회수 담당: "+r.author:"",r.status==="반납 신고"?"본인이 반납 신고함 → 물품 확인 후 [반납 확인]":""].filter(Boolean).join("  ·  ");if(m.textContent)row.append(m)}
+    if(r.note||r.author||r.rlog){const m=el("div","memo");m.textContent=[r.rlog?"반납 기록: "+r.rlog.split("\n").map(l=>l.slice(5).replace("-",".")).join(" / "):"",r.note?"비고: "+r.note:"",r.author&&r.status==="반납 완료"?"회수 담당: "+r.author:"",r.status==="반납 신고"?"본인이 반납 신고함 → 물품 확인 후 [반납 확인]":""].filter(Boolean).join("  ·  ");if(m.textContent)row.append(m)}
     if(editId===r.id){const ed=el("div","edit");const inp=document.createElement("input");inp.id="noteIn";inp.value=r.note||"";inp.placeholder=editKind==="return"?"비고 (예: 2장 오염, 1장 덜 들어옴)":"비고 입력";
-      ed.append(inp,btn(editKind==="return"?"반납 완료 처리":"비고 저장","ghost ok",()=>editKind==="return"?act({action:"status",id:r.id,status:"반납 완료",note:inp.value.trim()}):act({action:"note",id:r.id,note:inp.value.trim()})),btn("취소","ghost",()=>{editId=null;render()}));row.append(ed);setTimeout(()=>inp.focus(),0)}
+      if(editKind==="return"){const qs=[],g=el("div","rq");g.append(el("b","","돌려받은 수량"));
+        remain(r).filter(i=>i.qty>0).forEach(i=>{const w=el("label","rqi"),n=document.createElement("input");n.type="number";n.min="0";n.max=String(i.qty);n.value=String(i.qty);n.setAttribute("aria-label",i.item+" 돌려받은 수량");qs.push([i.item,n]);w.append(document.createTextNode(i.item+" "),n,document.createTextNode(" / "+i.qty+"개"));g.append(w)});
+        const lw=el("label","rqi"),lost=document.createElement("input");lost.type="checkbox";lw.append(lost,document.createTextNode(" 못 받은 나머지는 분실·파손으로 처리"));g.append(lw);ed.append(g);
+        ed.append(inp,btn("반납 저장","ghost ok",()=>{const back=qs.map(([item,n])=>({item,qty:Math.max(0,Math.min(+n.max,parseInt(n.value)||0))}));if(!back.some(x=>x.qty>0)&&!lost.checked){say2(ERR.zero,false);return}act({action:"return",id:r.id,back,lost:lost.checked,note:inp.value.trim()})}),btn("취소","ghost",()=>{editId=null;render()}))}
+      else ed.append(inp,btn("비고 저장","ghost ok",()=>act({action:"note",id:r.id,note:inp.value.trim()})),btn("취소","ghost",()=>{editId=null;render()}));
+      row.append(ed);setTimeout(()=>inp.focus(),0)}
     box.append(row);
   }
 }
 
 function say(t,ok){const m=$("msg");m.textContent=t;m.className="msg "+(ok?"ok":"err")}
-const ERR={pin:"담당자 또는 비밀번호가 맞지 않아요.",missing:"빈 칸을 모두 채워 주세요.",not_found:"이미 지워진 기록이에요. 새로고침했어요.",busy:"다른 분이 저장 중이에요. 잠시 후 다시 눌러 주세요.",bad:"요청을 처리하지 못했어요."};
+const ERR={pin:"담당자 또는 비밀번호가 맞지 않아요.",missing:"빈 칸을 모두 채워 주세요.",not_found:"이미 지워진 기록이에요. 새로고침했어요.",busy:"다른 분이 저장 중이에요. 잠시 후 다시 눌러 주세요.",zero:"돌려받은 수량을 넣어 주세요.",bad:"요청을 처리하지 못했어요."};
 function openEdit(id,k){editId=id;editKind=k;confirmId=null;render()}
 function say2(t,ok){const m=$("msg2");m.textContent=t;m.className="msg "+(ok?"ok":"err")}
 function creds(){const author=$("author").value,pin=$("pin").value.trim();if(!author||pin.length!==4){say2("담당자와 비밀번호를 먼저 넣어 주세요.",false);$("author").scrollIntoView({block:"center"});$("author").focus();return null}store("rent-author",author);return{author,pin}}
@@ -312,7 +326,7 @@ function rFind(){const w=norm($("rWho").value);const box=$("rList");box.textCont
   if(!mine.length){box.append(el("div","empty","이 이름으로 대여 중인 물품이 없어요. 신청할 때 쓴 이름을 확인해 주세요."));return}
   store("rent-me",$("rWho").value.trim());
   mine.sort((a,b)=>(a.due||"9").localeCompare(b.due||"9")).forEach(r=>{const st=status(r),d=el("div","ritem");
-    d.append(el("span","pill "+st.cls,st.txt),el("b","",parse(r.items).map(i=>i.item+" "+i.qty+"개").join(", ")),el("div","meta",(r.use||"")+" · "+(r.who||"")+(r.dept?" ("+r.dept+")":"")+" · 대여 "+nice(r.out)+" ~ 반납 예정 "+nice(r.due)));
+    d.append(el("span","pill "+st.cls,st.txt),el("b","",(partial(r)?remain(r).filter(i=>i.qty>0):parse(r.items)).map(i=>i.item+" "+i.qty+"개").join(", ")),el("div","meta",(r.use||"")+" · "+(r.who||"")+(r.dept?" ("+r.dept+")":"")+" · 대여 "+nice(r.out)+" ~ 반납 예정 "+nice(r.due)));
     if(r.status==="대여 중")d.append(btn("반납했어요","btn",()=>selfReturn(r.id)));
     else d.append(el("div","meta","신고 완료 · 담당자 확인을 기다리는 중"));
     box.append(d)})}
