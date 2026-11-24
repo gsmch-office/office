@@ -159,6 +159,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
         <label for="who">대여자<input id="who" required placeholder="예: 전별림 전도사"></label>
         <label for="dept">대여 부서<input id="dept" required placeholder="예: 갈렙교회"></label>
       </div>
+      <label for="phone">연락처<input id="phone" type="tel" inputmode="tel" required placeholder="예: 010-1234-5678"></label>
       <div class="row2">
         <label for="out"><span id="lOut">대여일</span><input id="out" type="date" required></label>
         <label for="due">반납 예정일<input id="due" type="date" required></label>
@@ -308,10 +309,10 @@ async function act(o){const c=creds();if(!c)return;if(busy)return;busy=true;conf
   catch(e){say2("저장하지 못했어요. 인터넷 연결을 확인해 주세요.",false)}finally{busy=false}}
 
 $("f").addEventListener("submit",async e=>{e.preventDefault();
-  const data={kind:mode==="wait"?"대기":"바로 대여",items:itemsText(),use:$("use").value.trim(),who:$("who").value.trim(),dept:$("dept").value.trim(),out:$("out").value,due:$("due").value};
-  if(!data.items||!data.use||!data.who||!data.dept||!data.out||!data.due){say(ERR.missing,false);return}
+  const data={kind:mode==="wait"?"대기":"바로 대여",items:itemsText(),use:$("use").value.trim(),who:$("who").value.trim(),dept:$("dept").value.trim(),phone:$("phone").value.trim(),out:$("out").value,due:$("due").value};
+  if(!data.items||!data.use||!data.who||!data.dept||!data.phone||!data.out||!data.due){say(ERR.missing,false);return}
   $("save").disabled=true;
-  try{const d=await post({action:"add",data});if(!d.ok){say(ERR[d.error]||ERR.bad,false)}else{apply(d);["use","who","dept","due"].forEach(k=>$(k).value="");resetItems();$("out").value=TODAY;say((data.kind==="대기"?"예약했습니다: ":"신청했습니다: ")+parse(data.items).map(i=>i.item+" "+i.qty+"개").join(", "),true);tab=data.kind==="대기"?"wait":"out";setTab()}}
+  try{const d=await post({action:"add",data});if(!d.ok){say(ERR[d.error]||ERR.bad,false)}else{apply(d);["use","who","dept","phone","due"].forEach(k=>$(k).value="");resetItems();$("out").value=TODAY;say((data.kind==="대기"?"예약했습니다: ":"신청했습니다: ")+parse(data.items).map(i=>i.item+" "+i.qty+"개").join(", "),true);tab=data.kind==="대기"?"wait":"out";setTab()}}
   catch(err){say("저장하지 못했어요. 인터넷 연결을 확인해 주세요.",false)}finally{$("save").disabled=false}});
 function setTab(){$("tOut").setAttribute("aria-selected",tab==="out");$("tWait").setAttribute("aria-selected",tab==="wait");$("tDone").setAttribute("aria-selected",tab==="done");render()}
 $("tOut").onclick=()=>{tab="out";setTab()};$("tWait").onclick=()=>{tab="wait";setTab()};$("tDone").onclick=()=>{tab="done";setTab()};
